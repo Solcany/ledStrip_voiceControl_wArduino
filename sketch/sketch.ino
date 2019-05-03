@@ -1,6 +1,9 @@
 #include <FastLED.h>
 //#define PI 3.1415926535897932384626433832795
 #define LED_PIN     7
+#define SOUND_MIN 333
+#define SOUND_MAX 400
+
 #define micPin A0
 
 #define NUM_LEDS    10//Number of leds
@@ -9,13 +12,10 @@
 //int brightness    = 50; //control brightness. values 0-127
 //int movementSpeed = 30; //control delay of movement (in milliseconds)
 
-// mic output settings
-const int micRawMin = 335;
-const int micRawMax = 342;
 
 // rgb settings
 const int minRgb = 0;
-const int maxRgb = 254;
+const int maxRgb = 255;
 
 // pulse settings
 const int pulseIntervalMin = 2;
@@ -27,20 +27,16 @@ unsigned long previousMillis = 0;
 boolean areLedsToggled[NUM_LEDS];
 int previousToggle;
 
-
-
-const int sampleSize = 5;
-int samples[sampleSize];
-int sampleIndex = 0;
-int sum = 0;
-
+// sound input smoothing & sampling
+const int sound_minmax_diff = SOUND_MAX - SOUND_MIN;
+const int avgSmoothing = 10;
+const int envSmoothing = 2;
+const int numSamples = 1000;
+int micSmoothed = 0;
 
 
 int sensorlength = 0;
 int sensorlength1 = 0;
-int micRawOutput = 0;
-float micSmoothed = 0;
-int smoothedMicVal = 0;
 int sensorspeed1 = 0;
 int sensorbrightness = 0;
 int sensorbrightness1 = 0;
@@ -63,30 +59,15 @@ void setup() {
   Serial.begin(9600);
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
 
-  for (int i = 0; i < sampleSize; i++) {
-    samples[i] = 0;
-  }
-
 }
 
 
 void loop()
 {
   // read output from microphone
-  micRawOutput = analogRead(micPin);
 
-  sum = sum - samples[sampleIndex];
-  samples[sampleIndex] = micRawOutput;
-  sum = sum + samples[sampleIndex];
-  sampleIndex = sampleIndex + 1;
-
-  if (sampleIndex >= sampleSize) {
-    sampleIndex = 0;
-  }
-
-  micSmoothed = sum / sampleSize;
-
-  interval = (int) round(map(micSmoothed, micRawMin, micRawMax, pulseIntervalMax, pulseIntervalMin));
+  micSmoothed = getSound();
+  interval = (int) round(map(micSmoothed, 0, sound_minmax_diff, pulseIntervalMax, pulseIntervalMin));
   Serial.println(micSmoothed);
 
   //Serial.println("micRaw:");
@@ -95,25 +76,25 @@ void loop()
   //Serial.println("micSmooth:");
   //Serial.println(micSmoothed);
 
-  sensorspeed1 = map(micRawOutput, 0, 1023, 0, 5);
+  sensorspeed1 = map(micSmoothed, 0, 1023, 0, 5);
   //Serial.println("1:");
   //Serial.println(sensorspeed1);
 
-  sensorlength1 = map(micRawOutput, 0, 1023, 0, 30);
+  sensorlength1 = map(micSmoothed, 0, 1023, 0, 30);
   //Serial.println("2:");
   //Serial.println(sensorlength1);
 
-  sensorbrightness1 = map(micRawOutput, 0, 1023, 0, 50);
+  sensorbrightness1 = map(micSmoothed, 0, 1023, 0, 50);
   //Serial.println("3:");
   //Serial.println(sensorbrightness1);
 
-  sensormovementspeed1 = map(micRawOutput, 0, 1023, 0, 30);
+  sensormovementspeed1 = map(micSmoothed, 0, 1023, 0, 30);
   //Serial.println("4:");
   //Serial.println(sensormovementspeed1);
 
   int r = (int) round(random(0, NUM_LEDS));
   if ( previousToggle == r) {
-    r = (int) round(random(0, NUM_LEDS));
+    r++;
   }
 
   unsigned long currentMillis = millis();
@@ -150,31 +131,19 @@ void loop()
   //      leds[z] = CRGB(ledArray[z], ledArray[z], ledArray[z]);
   //    }
   //    FastLED.show();
-  delay(2);
+  delay(5);
 }
-
-
-/*
-  leds[0] = CRGB(value, value, value);
-  FastLED.show();
-  delay(500);
-  leds[1] = CRGB(200, 200 , 200);
-  FastLED.show();
-  delay(500);
-  leds[2] = CRGB(150, 150, 150);
-  FastLED.show();
-  delay(500);
-  leds[3] = CRGB(100, 100, 100);
-  FastLED.show();
-  delay(500);
-  leds[4] = CRGB(50, 50, 50);
-  FastLED.show();
-  delay(500);
-  leds[5] = CRGB(10, 10, 10);
-  FastLED.show();
-  delay(500);
-  leds[6] = CRGB(1, 1, 1);
-  FastLED.show();
-  delay(500);
-*/
-//}
+int getSound() {
+  static int average = SOUND_MIN;
+  static int avgEnvelope = 0;
+  int envelope = 0;
+  
+  for ( int i = 0; i< numSamples; i++ ) {
+    int sound = analogRead(micPin);
+    int sampleEnvelope = abs(sound - average);
+    envelope = (sampleEnvelope+envelope)/2;
+    avgEnvelope = (envSmoothing * avgEnvelope + sampleEnvelope) / (envSmoothing + 1);
+    average = (avgSmoothing * average + sound) / (avgSmoothing + 1);
+  }
+  return envelope;
+}
