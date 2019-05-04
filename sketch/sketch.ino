@@ -27,13 +27,13 @@ change these to the affect behavior of the program
 
 // how often will a new led pixel be selected
 // the bigger the max number, the 'slower' the whole led strip will be 
-const int periodDurationMin = 200;
-const int periodDurationMax = 1000;
+const int periodDurationMin = 100;
+const int periodDurationMax = 500;
 
 // how fast will a single led finish fadein/out pulse
 // bigger the max number, the longer the pulse will last
-const int pulseDurationMin = 100;
-const int pulseDurationMax = 500;
+const int pulseDurationMin = 25;
+const int pulseDurationMax = 100;
 
 // how distant will a selected led pixel be from the previous one
 // bigger the max number, the more 'random' will the whole led strip look
@@ -84,10 +84,10 @@ void setup() {
 void loop()
 {
 
-//  int loopsPerSecond = measure_loopsPerSecond(5);
-//  Serial.println("loopsPerSec :");
-//  Serial.println(loopsPerSecond);
-//  Serial.println("  ");
+  int loopsPerSecond = measure_loopsPerSecond(5);
+  Serial.println("loopsPerSec :");
+  Serial.println(loopsPerSecond);
+  Serial.println("  ");
 
     
   /* ––––––––––––––––  SOUND INPUT SMOOTHING ––––––––––––––––  */
@@ -110,13 +110,13 @@ void loop()
   /* ––––––––––––––––  SMOOTHED SOUND INPUT RERANGING ––––––––––––––––  */
 
   // how often will a new led pixel be selected
-  int period = (int) round(map(micSmoothed, enviromentSilence, enviromentSoundMax, periodDurationMax, periodDurationMin));
+  int period = (int) abs(round(map(micSmoothed, enviromentSilence, enviromentSoundMax, periodDurationMax, periodDurationMin)));
 
   // how long will a fade in/out cycle of led pixel take
-  int pulseDuration = (int) round(map(micSmoothed, enviromentSilence, enviromentSoundMax, pulseDurationMax, pulseDurationMin));
+  int pulseDuration = (int) abs(round(map(micSmoothed, enviromentSilence, enviromentSoundMax, pulseDurationMax, pulseDurationMin)));
   
   // how distant will the next selected pixel be from the previous
-  int noiseSpeed = (int) round(map(micSmoothed, enviromentSilence, enviromentSoundMax, noiseSpeedMin, noiseSpeedMax));
+  int noiseSpeed = (int) abs(round(map(micSmoothed, enviromentSilence, enviromentSoundMax, noiseSpeedMin, noiseSpeedMax)));
 
   /* ––––––––––––––––  LED PIXEL SELECTION ––––––––––––––––  */
 
@@ -148,15 +148,17 @@ void loop()
   }
 
   /* ––––––––––––––––  LED PIXELS FADE IN/OUT PULSE (or cycle) ––––––––––––––––  */
+      Serial.println("pulseDuration:");
+      Serial.println(pulseDuration);
+      Serial.println(" ");
 
-  float pulseDurationPerLoop = round(pulseDuration / loopsPerSecond);
-      pulseDurationPerLoop = round(1000.0 / loopsPerSecond);
+
+  int pulseDurationPerLoop = (int) round(pulseDuration / loopsPerSecond);
       Serial.println("pDperLoop:");
       Serial.println(pulseDurationPerLoop);
       Serial.println(" ");
 
-  float pulseStep = round(PI_ / pulseDuration);
-      pulseStep = round(PI_ / 1000);
+  float pulseStep = PI_ / pulseDuration;
 
       Serial.println("pulseStep:");
       Serial.println(pulseStep);
@@ -183,7 +185,7 @@ void loop()
   }
 
   FastLED.show();
-  delay(1000);
+  delay(2);
 }
 
 static inline int measure_loopsPerSecond(const int seconds){
