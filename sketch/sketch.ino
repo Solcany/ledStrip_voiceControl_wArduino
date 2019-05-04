@@ -4,6 +4,8 @@
 #define micPin A0
 
 #define NUM_LEDS    10//Number of leds
+CRGB leds[NUM_LEDS];
+
 //int stepLength    = 30; //difference in brightness between neighboring leds. Can make it multiples of 30
 //int stepSpeed     = 5;  //difference in speed/intensity of change of the individual leds max=360
 //int brightness    = 50; //control brightness. values 0-127
@@ -64,7 +66,6 @@ int sensormovementspeed1 = 0;
 
 
 int value = 0;
-CRGB leds[NUM_LEDS];
 int degArray[10];
 float radArray[10];
 float sinArray[10];
