@@ -35,6 +35,10 @@ const int periodDurationMax = 500;
 const int pulseDurationMin = 25;
 const int pulseDurationMax = 100;
 
+const float pulseStepMin = 1.0;
+const float pulseStepMax = 7.0;
+
+
 // how distant will a selected led pixel be from the previous one
 // bigger the max number, the more 'random' will the whole led strip look
 const int noiseSpeedMin = 1;
@@ -65,7 +69,6 @@ uint8_t noiseRaw;
 uint8_t noiseScaled;
 uint16_t noiseX;
 int noiseSpeed;
-float pulseStep;
 
 int samples[sampleSize];
 int sampleIndex = 0;
@@ -113,7 +116,12 @@ void loop()
   int period = (int) abs(round(map(micSmoothed, enviromentSilence, enviromentSoundMax, periodDurationMax, periodDurationMin)));
 
   // how long will a fade in/out cycle of led pixel take
-  int pulseDuration = (int) abs(round(map(micSmoothed, enviromentSilence, enviromentSoundMax, pulseDurationMax, pulseDurationMin)));
+//  int pulseDuration = (int) abs(round(map(micSmoothed, enviromentSilence, enviromentSoundMax, pulseDurationMax, pulseDurationMin)));
+
+  float pulseStep =  abs(map(micSmoothed, enviromentSilence, enviromentSoundMax, pulseStepMax, pulseStepMin)) / 100.0;
+  Serial.println("pS: ");
+  Serial.println(pulseStep);
+  Serial.println("    ");
   
   // how distant will the next selected pixel be from the previous
   int noiseSpeed = (int) abs(round(map(micSmoothed, enviromentSilence, enviromentSoundMax, noiseSpeedMin, noiseSpeedMax)));
@@ -148,25 +156,25 @@ void loop()
   }
 
   /* ––––––––––––––––  LED PIXELS FADE IN/OUT PULSE (or cycle) ––––––––––––––––  */
-      Serial.println("pulseDuration:");
-      Serial.println(pulseDuration);
-      Serial.println(" ");
-
-
-  int pulseDurationPerLoop = (int) round(pulseDuration / loopsPerSecond);
-      Serial.println("pDperLoop:");
-      Serial.println(pulseDurationPerLoop);
-      Serial.println(" ");
-
-  float pulseStep = PI_ / pulseDuration;
-
-      Serial.println("pulseStep:");
-      Serial.println(pulseStep);
-      Serial.println(" ");
+//      Serial.println("pulseDuration:");
+//      Serial.println(pulseDuration);
+//      Serial.println(" ");
+//
+//
+//  int pulseDurationPerLoop = (int) round(pulseDuration / loopsPerSecond);
+//      Serial.println("pDperLoop:");
+//      Serial.println(pulseDurationPerLoop);
+//      Serial.println(" ");
+//
+//  float pulseStep = PI_ / pulseDuration;
+//
+//      Serial.println("pulseStep:");
+//      Serial.println(pulseStep);
+//      Serial.println(" ");
 
   // fade in the selected pixel
-  unsigned long pulse_currentMillis = millis();
-  if (pulse_currentMillis - pulse_previousMillis >= pulseDurationPerLoop) {
+//  unsigned long pulse_currentMillis = millis();
+//  if (pulse_currentMillis - pulse_previousMillis >= pulseDurationPerLoop) {
     for(int i = 0; i < NUM_LEDS; i++) {
         if(areLedsToggled[i] && ledsBrightness_inRadians[i] < PI_) {
           // brighten a led pixel to maximum brightness, then back to black
@@ -181,8 +189,8 @@ void loop()
           ledsBrightness_inRadians[i] = 0.0;
         }
     }
-    pulse_previousMillis = pulse_currentMillis;
-  }
+//    pulse_previousMillis = pulse_currentMillis;
+//  }
 
   FastLED.show();
   delay(2);
