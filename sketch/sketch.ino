@@ -4,86 +4,71 @@
 #define micPin A0
 #define micRawMin 335
 #define micRawMax 342
-
-#define NUM_LEDS    10//Number of leds
-CRGB leds[NUM_LEDS];
+#define NUM_LEDS  10//Number of leds
 
 //int stepLength    = 30; //difference in brightness between neighboring leds. Can make it multiples of 30
 //int stepSpeed     = 5;  //difference in speed/intensity of change of the individual leds max=360
 //int brightness    = 50; //control brightness. values 0-127
 //int movementSpeed = 30; //control delay of movement (in milliseconds)
 
-// mic output settings
+CRGB leds[NUM_LEDS];
+
+/* ––––––––––––––––  CONSTANTS –––––––––––––––– 
+
+change these to the affect behavior of the program
+
+*/
+
+// how often will a new led be selected
+// the bigger the max number, the 'slower' the led strip will be 
+
+const int periodDurationMin = 200;
+const int periodDurationMax = 1000;
+
+// how fast will a single led finish fadein/out cycle
+// bigger the max number, the longer a pulse cycle will be
+
+const int pulseDurationMin = 100;
+const int pulseDurationMax = 500;
+
+// how distant will a selected led be from previous one
+// bigger the max number, the more 'random' will the led strip look
+
+const int noiseSpeed_min = 1;
+const int noiseSpeed_max = 50;
+
+// how many samples will be collected before moving average is calculated
+// bigger the number the smoother the sound wave will be
+const int sampleSize = 35;
 
 
-// rgb settings
-const int minRgb = 0;
-const int maxRgb = 254;
-int ledsBrightness[NUM_LEDS];
-float ledsFadeState_inRadians[NUM_LEDS];
-float radStep = PI_ / 60.0;
+/* ––––––––––––––––  VARIABLES ––––––––––––––––  */
 
-// pulse settings
-const int pulseIntervalMin = 2;
-const int pulseIntervalMax = 2500;
-int interval = pulseIntervalMax;
-int fadeStep = 25;
-
-
+float ledsBrightness_inRadians[NUM_LEDS];
+float pulseStep;
 
 int ledPointer;
 int previousPointer;
 
-
-// delay
-unsigned long previousMillis = 0;
-unsigned long previousMillis_ = 0;
+unsigned long period_previousMillis;
+unsigned long pulse_previousMillis;
 
 boolean areLedsToggled[NUM_LEDS];
 
 int desiredFadePeriod = 1500;
 
-
-// noise settings
-const int noiseSpeed_min = 1;
-const int noiseSpeed_max = 50;
-
 uint8_t noiseRaw;
 uint8_t noiseScaled;
+uint16_t noiseX;
 int noiseSpeed;
 
-
-uint16_t noiseX;
-
-
-// sound sampling & smoothing
-const int sampleSize = 35;
 int samples[sampleSize];
 int sampleIndex = 0;
 int sum = 0;
 
-
-
-int sensorlength = 0;
-int sensorlength1 = 0;
 int micRawOutput = 0;
 float micSmoothed = 0;
-int smoothedMicVal = 0;
-int sensorspeed1 = 0;
-int sensorbrightness = 0;
-int sensorbrightness1 = 0;
-int sensormovementspeed = 0;
-int sensormovementspeed1 = 0;
 
-
-int value = 0;
-int degArray[10];
-float radArray[10];
-float sinArray[10];
-int ledArray[10];
-float iRad = 0;
-float sinVal = 0;
-int ledVal = 0;
 
 void setup() {
 
@@ -102,6 +87,9 @@ void setup() {
 
 void loop()
 {
+  int loopsPerSecond = measure_loopsPerSecond(5);
+  int pulseDurationPerLoop = desiredPulsePeriod / loopsPerSecond;  
+  
   // read output from microphone
   micRawOutput = analogRead(micPin);
 
@@ -120,14 +108,14 @@ void loop()
   // how often will a new led pixel be randomly picked
   int period = (int) round(map(micSmoothed, micRawMin, micRawMax, pulseIntervalMax, pulseIntervalMin));
       //DEBUG
-      period = 2000;
+      period = 250;
       
   // how much will next value differ from the previous
   int noiseSpeed = (int) round(map(micSmoothed, micRawMin, micRawMax, noiseSpeed_min, noiseSpeed_max));
 
 
-  unsigned long currentMillis = millis();  
-  if (currentMillis - previousMillis >= period) {
+  unsigned long period_currentMillis = millis();  
+  if (period_currentMillis - period_previousMillis >= period) {
     
     // default noise value is between 30 – 230
     noiseRaw = inoise8(noiseX);
@@ -149,7 +137,7 @@ void loop()
     areLedsToggled[ledPointer] = true;
 
     // save current time
-    previousMillis = currentMillis;
+    period_previousMillis = period_currentMillis;
     // save current on led index
     previousPointer = ledPointer;
   }
@@ -157,19 +145,19 @@ void loop()
 
   // fade in the selected pixel
   unsigned long currentMillis_ = millis();
-  if (currentMillis_ - previousMillis_ >= fadeStep) {
+  if (currentMillis_ - pulse_previousMillis >= pulseDurationPerLoop) {
     for(int i = 0; i < NUM_LEDS; i++) {
       if(areLedsToggled[i]) {
-        if(ledsFadeState_inRadians[i] < PI_) {
-          float sinA = sin(ledsFadeState_inRadians[i]);
-          ledsFadeState_inRadians[i] += radStep;
+        if(ledsBrightness_inRadians[i] < PI_) {
+          float sinA = sin(ledsBrightness_inRadians[i]);
+          ledsBrightness_inRadians[i] += pulseStep;
           float brightness = sinA * 255;
           leds[i] = CRGB(brightness, brightness, brightness);
         } else {
           Serial.println("a led finished cycle");
           leds[i].fadeToBlackBy(255);
           areLedsToggled[i] = false;
-          ledsFadeState_inRadians[i] = 0;
+          ledsBrightness_inRadians[i] = 0;
         }
       }
     }
@@ -196,28 +184,21 @@ void loop()
   delay(2);
 }
 
-
-/*
-  leds[0] = CRGB(value, value, value);
-  FastLED.show();
-  delay(500);
-  leds[1] = CRGB(200, 200 , 200);
-  FastLED.show();
-  delay(500);
-  leds[2] = CRGB(150, 150, 150);
-  FastLED.show();
-  delay(500);
-  leds[3] = CRGB(100, 100, 100);
-  FastLED.show();
-  delay(500);
-  leds[4] = CRGB(50, 50, 50);
-  FastLED.show();
-  delay(500);
-  leds[5] = CRGB(10, 10, 10);
-  FastLED.show();
-  delay(500);
-  leds[6] = CRGB(1, 1, 1);
-  FastLED.show();
-  delay(500);
-*/
-//}
+static inline int measure_loopsPerSecond(const int seconds){
+  // Create static variables so that the code and variables can
+  // all be declared inside a function
+  static unsigned long previousMillis;
+  static unsigned long frameCount;
+  static unsigned int loopsPerSecond;
+  
+  
+  // It is best if we declare millis() only once
+  unsigned long currentMillis = millis();
+  frameCount ++;
+  if (currentMillis - previousMillis >= seconds * 1000) {
+    loopsPerSecond = frameCount / seconds;
+    frameCount = 0;
+    previousMillis = currentMillis; 
+    return loopsPerSecond;
+  }
+}
