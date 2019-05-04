@@ -1,7 +1,9 @@
 #include <FastLED.h>
-//#define PI 3.1415926535897932384626433832795
-#define LED_PIN     7
+#define PI_ 3.1415
+#define LED_PIN 7
 #define micPin A0
+#define micRawMin 335
+#define micRawMax 342
 
 #define NUM_LEDS    10//Number of leds
 CRGB leds[NUM_LEDS];
@@ -12,12 +14,14 @@ CRGB leds[NUM_LEDS];
 //int movementSpeed = 30; //control delay of movement (in milliseconds)
 
 // mic output settings
-const int micRawMin = 335;
-const int micRawMax = 342;
+
 
 // rgb settings
 const int minRgb = 0;
 const int maxRgb = 254;
+int ledsBrightness[NUM_LEDS];
+float rads[NUM_LEDS];
+float radStep = PI_ / 60.0;
 
 // pulse settings
 const int pulseIntervalMin = 2;
@@ -30,7 +34,11 @@ int previousPointer;
 
 // delay
 unsigned long previousMillis = 0;
+unsigned long previousMillis_ = 0;
+
 boolean areLedsToggled[NUM_LEDS];
+
+int desiredFadePeriod = 1500;
 
 
 // noise settings
@@ -94,6 +102,7 @@ void loop()
   // read output from microphone
   micRawOutput = analogRead(micPin);
 
+  // get moving average of raw mic input
   sum = sum - samples[sampleIndex];
   samples[sampleIndex] = micRawOutput;
   sum = sum + samples[sampleIndex];
@@ -102,69 +111,64 @@ void loop()
   if (sampleIndex >= sampleSize) {
     sampleIndex = 0;
   }
-
+  
   micSmoothed = sum / sampleSize;
 
-  interval = (int) round(map(micSmoothed, micRawMin, micRawMax, pulseIntervalMax, pulseIntervalMin));
-  noiseSpeed = (int) round(map(micSmoothed, micRawMin, micRawMax, noiseSpeed_min, noiseSpeed_max));
+  // how often will a new led pixel be randomly picked
+  int period = (int) round(map(micSmoothed, micRawMin, micRawMax, pulseIntervalMax, pulseIntervalMin));
+      //DEBUG
+      period = 500;
+      
+  // how much will next value differ from the previous
+  int noiseSpeed = (int) round(map(micSmoothed, micRawMin, micRawMax, noiseSpeed_min, noiseSpeed_max));
 
-//  Serial.println(micSmoothed);
 
-  //Serial.println("micRaw:");
-  //Serial.println(micRaw);
-  //Serial.println(" ");
-  //Serial.println("micSmooth:");
-  //Serial.println(micSmoothed);
+  unsigned long currentMillis = millis();  
+  if (currentMillis - previousMillis >= period) {
+    
+    // default noise value is between 30 – 230
+    noiseRaw = inoise8(noiseX);
+    // rerange to 0 – 255
+    noiseScaled = qsub8(noiseRaw,16);
+    noiseScaled = qadd8(noiseScaled,scale8(noiseScaled,39));
+    
+    // advance noise
+    noiseX += noiseSpeed;
 
-  sensorspeed1 = map(micRawOutput, 0, 1023, 0, 5);
-  //Serial.println("1:");
-  //Serial.println(sensorspeed1);
+    // choose a led pixel to light up
+    ledPointer = round(map(noiseScaled, 0, 255, 0, NUM_LEDS));
+    if ( previousPointer == ledPointer) {
+      // if the pixel is same as the previous, advance by 1
+      ledPointer++;
+    }
 
-  sensorlength1 = map(micRawOutput, 0, 1023, 0, 30);
-  //Serial.println("2:");
-  //Serial.println(sensorlength1);
-
-  sensorbrightness1 = map(micRawOutput, 0, 1023, 0, 50);
-  //Serial.println("3:");
-  //Serial.println(sensorbrightness1);
-
-  sensormovementspeed1 = map(micRawOutput, 0, 1023, 0, 30);
-  //Serial.println("4:");
-  //Serial.println(sensormovementspeed1);
-
-   noiseRaw = inoise8(noiseX);
-         // The range of the inoise8 function is roughly 16-238.
-      // These two operations expand those values out to roughly 0..255
-      // You can comment them out if you want the raw noise data.
-   noiseScaled = qsub8(noiseRaw,16);
-   noiseScaled = qadd8(noiseScaled,scale8(noiseScaled,39));
-
-   noiseX += noiseSpeed;
-
-   ledPointer = round(map(noiseScaled, 0, 255, 0, NUM_LEDS));
-   Serial.println(ledPointer);
-
-  if ( previousPointer == ledPointer) {
-    ledPointer++;
-  }
-
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - previousMillis >= interval) {
-    previousMillis = currentMillis;
-    // turn on randomly selected led
+    // toggle the selected pixel
     areLedsToggled[ledPointer] = true;
 
-    leds[ledPointer].setRGB(255, 255, 255);
-    FastLED.show();
-
-    // turn off previous led
-    areLedsToggled[previousPointer] = false;
-    leds[previousPointer].setRGB(0, 0, 0);
-    FastLED.show();
-
+    // save current time
+    previousMillis = currentMillis;
     // save current on led index
     previousPointer = ledPointer;
+  }
+
+
+  // fade in the selected pixel
+  unsigned long currentMillis_ = millis();
+  if (currentMillis_ - previousMillis_ >= fadeStep) {
+    for(int i = 0; i < NUM_LEDS; i++) {
+      if(areLedsToggled[i]) {
+        if(rads[i] < PI_) {
+          float sinA = sin(rads[i]);
+          rads[i] += radStep;
+          float brightness = sinA * 255;
+          leds[i] = CRGB(brightness, brightness, brightness);
+          //leds[i].fadeToBlackBy(ledsBrightness[i]);
+        } else {
+          areLedsToggled[i] = false;
+        }
+      }
+    }
+    previousMillis_ = currentMillis_;
   }
 
  
@@ -183,7 +187,7 @@ void loop()
   //    for(int z=0; z<NUM_LEDS; z++){
   //      leds[z] = CRGB(ledArray[z], ledArray[z], ledArray[z]);
   //    }
-  //    FastLED.show();
+  FastLED.show();
   delay(2);
 }
 
