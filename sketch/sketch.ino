@@ -20,13 +20,16 @@ CRGB leds[NUM_LEDS];
 const int minRgb = 0;
 const int maxRgb = 254;
 int ledsBrightness[NUM_LEDS];
-float rads[NUM_LEDS];
+float ledsFadeState_inRadians[NUM_LEDS];
 float radStep = PI_ / 60.0;
 
 // pulse settings
 const int pulseIntervalMin = 2;
 const int pulseIntervalMax = 2500;
 int interval = pulseIntervalMax;
+int fadeStep = 25;
+
+
 
 int ledPointer;
 int previousPointer;
@@ -117,7 +120,7 @@ void loop()
   // how often will a new led pixel be randomly picked
   int period = (int) round(map(micSmoothed, micRawMin, micRawMax, pulseIntervalMax, pulseIntervalMin));
       //DEBUG
-      period = 500;
+      period = 2000;
       
   // how much will next value differ from the previous
   int noiseSpeed = (int) round(map(micSmoothed, micRawMin, micRawMax, noiseSpeed_min, noiseSpeed_max));
@@ -157,14 +160,16 @@ void loop()
   if (currentMillis_ - previousMillis_ >= fadeStep) {
     for(int i = 0; i < NUM_LEDS; i++) {
       if(areLedsToggled[i]) {
-        if(rads[i] < PI_) {
-          float sinA = sin(rads[i]);
-          rads[i] += radStep;
+        if(ledsFadeState_inRadians[i] < PI_) {
+          float sinA = sin(ledsFadeState_inRadians[i]);
+          ledsFadeState_inRadians[i] += radStep;
           float brightness = sinA * 255;
           leds[i] = CRGB(brightness, brightness, brightness);
-          //leds[i].fadeToBlackBy(ledsBrightness[i]);
         } else {
+          Serial.println("a led finished cycle");
+          leds[i].fadeToBlackBy(255);
           areLedsToggled[i] = false;
+          ledsFadeState_inRadians[i] = 0;
         }
       }
     }
