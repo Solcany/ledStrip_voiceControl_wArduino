@@ -32,14 +32,19 @@ boolean areLedsToggled[NUM_LEDS];
 
 
 // noise settings
+const int noiseSpeed_min = 1;
+const int noiseSpeed_max = 50;
+
 uint8_t noiseRaw;
 uint8_t noiseScaled;
-uint16_t noiseSpeed = 5;
+int noiseSpeed;
+
+
 uint16_t noiseX;
 
 
 // sound sampling & smoothing
-const int sampleSize = 25;
+const int sampleSize = 35;
 int samples[sampleSize];
 int sampleIndex = 0;
 int sum = 0;
@@ -100,6 +105,8 @@ void loop()
   micSmoothed = sum / sampleSize;
 
   interval = (int) round(map(micSmoothed, micRawMin, micRawMax, pulseIntervalMax, pulseIntervalMin));
+  noiseSpeed = (int) round(map(micSmoothed, micRawMin, micRawMax, noiseSpeed_min, noiseSpeed_max));
+
 //  Serial.println(micSmoothed);
 
   //Serial.println("micRaw:");
@@ -130,6 +137,7 @@ void loop()
       // You can comment them out if you want the raw noise data.
    noiseScaled = qsub8(noiseRaw,16);
    noiseScaled = qadd8(noiseScaled,scale8(noiseScaled,39));
+
    noiseX += noiseSpeed;
 
    ledPointer = round(map(noiseScaled, 0, 255, 0, NUM_LEDS));
