@@ -22,14 +22,24 @@ const int pulseIntervalMin = 2;
 const int pulseIntervalMax = 2500;
 int interval = pulseIntervalMax;
 
+int ledPointer;
+int previousPointer;
+
+
 // delay
 unsigned long previousMillis = 0;
 boolean areLedsToggled[NUM_LEDS];
-int previousToggle;
 
 
+// noise settings
+uint8_t noiseRaw;
+uint8_t noiseScaled;
+uint16_t noiseSpeed = 5;
+uint16_t noiseX;
 
-const int sampleSize = 5;
+
+// sound sampling & smoothing
+const int sampleSize = 25;
 int samples[sampleSize];
 int sampleIndex = 0;
 int sum = 0;
@@ -63,6 +73,9 @@ void setup() {
   Serial.begin(9600);
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
 
+  random16_set_seed(7500);
+  noiseX = random16();
+
   for (int i = 0; i < sampleSize; i++) {
     samples[i] = 0;
   }
@@ -87,7 +100,7 @@ void loop()
   micSmoothed = sum / sampleSize;
 
   interval = (int) round(map(micSmoothed, micRawMin, micRawMax, pulseIntervalMax, pulseIntervalMin));
-  Serial.println(micSmoothed);
+//  Serial.println(micSmoothed);
 
   //Serial.println("micRaw:");
   //Serial.println(micRaw);
@@ -111,9 +124,19 @@ void loop()
   //Serial.println("4:");
   //Serial.println(sensormovementspeed1);
 
-  int r = (int) round(random(0, NUM_LEDS));
-  if ( previousToggle == r) {
-    r = (int) round(random(0, NUM_LEDS));
+   noiseRaw = inoise8(noiseX);
+         // The range of the inoise8 function is roughly 16-238.
+      // These two operations expand those values out to roughly 0..255
+      // You can comment them out if you want the raw noise data.
+   noiseScaled = qsub8(noiseRaw,16);
+   noiseScaled = qadd8(noiseScaled,scale8(noiseScaled,39));
+   noiseX += noiseSpeed;
+
+   ledPointer = round(map(noiseScaled, 0, 255, 0, NUM_LEDS));
+   Serial.println(ledPointer);
+
+  if ( previousPointer == ledPointer) {
+    ledPointer++;
   }
 
   unsigned long currentMillis = millis();
@@ -121,18 +144,18 @@ void loop()
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
     // turn on randomly selected led
-    areLedsToggled[r] = true;
+    areLedsToggled[ledPointer] = true;
 
-    leds[r].setRGB(255, 255, 255);
+    leds[ledPointer].setRGB(255, 255, 255);
     FastLED.show();
 
     // turn off previous led
-    areLedsToggled[previousToggle] = false;
-    leds[previousToggle].setRGB(0, 0, 0);
+    areLedsToggled[previousPointer] = false;
+    leds[previousPointer].setRGB(0, 0, 0);
     FastLED.show();
 
     // save current on led index
-    previousToggle = r;
+    previousPointer = ledPointer;
   }
 
 
