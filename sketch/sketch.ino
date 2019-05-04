@@ -166,6 +166,8 @@ void loop()
     previousPointer = ledPointer;
   }
 
+ 
+
 
   //  for(int i=0; i<360; i = i+sensorspeed1){
   //    iRad = i * PI / 180;
