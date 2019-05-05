@@ -8,7 +8,7 @@
 
 /* ––––––––––––––––  ENVIROMENT LOUDNESS –––––––––––––––– 
 
-enviromentSilence: measure mic value when the environment.
+enviromentSilence: measure mic value when the environment is silent.
 enviromentSoundMax: measure mic value while a loud sound is present.
 
 */
