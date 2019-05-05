@@ -154,7 +154,7 @@ void loop()
           ledsBrightness_inRadians[i] += pulseStep;
         } else {
           // when pixel cycle is finished, reset the pixel and turn it off
-          leds[i].fadeLightBy(128);
+//          leds[i].fadeLightBy(128);
           leds[i] = CRGB(15, 15, 15);
           areLedsToggled[i] = false;
           ledsBrightness_inRadians[i] = 0.0;
