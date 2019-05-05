@@ -16,7 +16,7 @@ enviromentSoundMax: measure mic value while a loud sound is present.
 */
 
 const int enviromentSilence = 335;
-const int enviromentSoundMax = 342;
+const int enviromentLoudness = 342;
 
 
 /* ––––––––––––––––  SETTINGS –––––––––––––––– 
@@ -28,15 +28,15 @@ change these to the affect behavior of the program
 // how often will a new led pixel be selected
 // the bigger the max number, the 'slower' the whole led strip will be 
 const int periodDurationMin = 100;
-const int periodDurationMax = 500;
+const int periodDurationMax = 1000;
 
 // how fast will a single led finish fadein/out pulse
 // bigger the max number, the longer the pulse will last
 const int pulseDurationMin = 25;
 const int pulseDurationMax = 100;
 
-const float pulseStepMin = 1.0;
-const float pulseStepMax = 7.0;
+const float pulseStepMin = 3.0;
+const float pulseStepMax = 0.05;
 
 
 // how distant will a selected led pixel be from the previous one
@@ -87,10 +87,10 @@ void setup() {
 void loop()
 {
 
-  int loopsPerSecond = measure_loopsPerSecond(5);
-  Serial.println("loopsPerSec :");
-  Serial.println(loopsPerSecond);
-  Serial.println("  ");
+//  int loopsPerSecond = measure_loopsPerSecond(5);
+//  Serial.println("loopsPerSec :");
+//  Serial.println(loopsPerSecond);
+//  Serial.println("  ");
 
     
   /* ––––––––––––––––  SOUND INPUT SMOOTHING ––––––––––––––––  */
@@ -108,23 +108,24 @@ void loop()
     sampleIndex = 0;
   }
   // smoothed mic value is average of recorded samples
-  micSmoothed = round(sum / sampleSize);
 
+  micSmoothed = round(sum / sampleSize);
+  
   /* ––––––––––––––––  SMOOTHED SOUND INPUT RERANGING ––––––––––––––––  */
 
   // how often will a new led pixel be selected
-  int period = (int) abs(round(map(micSmoothed, enviromentSilence, enviromentSoundMax, periodDurationMax, periodDurationMin)));
+  int period = (int) abs(round(map(micSmoothed, enviromentSilence, enviromentLoudness, periodDurationMax, periodDurationMin)));
 
   // how long will a fade in/out cycle of led pixel take
 //  int pulseDuration = (int) abs(round(map(micSmoothed, enviromentSilence, enviromentSoundMax, pulseDurationMax, pulseDurationMin)));
 
-  float pulseStep =  abs(map(micSmoothed, enviromentSilence, enviromentSoundMax, pulseStepMax, pulseStepMin)) / 100.0;
-  Serial.println("pS: ");
-  Serial.println(pulseStep);
-  Serial.println("    ");
+  float pulseStep =  abs(map(micSmoothed, enviromentSilence, enviromentLoudness, pulseStepMax, pulseStepMin)) / 100.0;
+//  Serial.println("pS: ");
+//  Serial.println(pulseStep);
+//  Serial.println("    ");
   
   // how distant will the next selected pixel be from the previous
-  int noiseSpeed = (int) abs(round(map(micSmoothed, enviromentSilence, enviromentSoundMax, noiseSpeedMin, noiseSpeedMax)));
+  int noiseSpeed = (int) abs(round(map(micSmoothed, enviromentSilence, enviromentLoudness, noiseSpeedMin, noiseSpeedMax)));
 
   /* ––––––––––––––––  LED PIXEL SELECTION ––––––––––––––––  */
 
@@ -184,7 +185,8 @@ void loop()
           ledsBrightness_inRadians[i] += pulseStep;
         } else {
           // when pixel cycle is finished, reset the pixel and turn it off
-          leds[i].fadeToBlackBy(255);
+//          leds[i].fadeLightBy(128);
+          leds[i] = CRGB(15, 15, 15);
           areLedsToggled[i] = false;
           ledsBrightness_inRadians[i] = 0.0;
         }
