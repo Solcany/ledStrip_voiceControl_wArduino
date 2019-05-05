@@ -6,8 +6,6 @@
 
 #define NUM_LEDS  10
 
-
-
 /* ––––––––––––––––  ENVIROMENT LOUDNESS –––––––––––––––– 
 
 enviromentSilence: measure mic value when the environment.
@@ -86,12 +84,6 @@ void setup() {
 
 void loop()
 {
-
-//  int loopsPerSecond = measure_loopsPerSecond(5);
-//  Serial.println("loopsPerSec :");
-//  Serial.println(loopsPerSecond);
-//  Serial.println("  ");
-
     
   /* ––––––––––––––––  SOUND INPUT SMOOTHING ––––––––––––––––  */
 
@@ -107,7 +99,6 @@ void loop()
   if (sampleIndex >= sampleSize) {
     sampleIndex = 0;
   }
-  // smoothed mic value is average of recorded samples
 
   micSmoothed = round(sum / sampleSize);
   
@@ -117,12 +108,8 @@ void loop()
   int period = (int) abs(round(map(micSmoothed, enviromentSilence, enviromentLoudness, periodDurationMax, periodDurationMin)));
 
   // how long will a fade in/out cycle of led pixel take
-//  int pulseDuration = (int) abs(round(map(micSmoothed, enviromentSilence, enviromentSoundMax, pulseDurationMax, pulseDurationMin)));
 
   float pulseStep =  abs(map(micSmoothed, enviromentSilence, enviromentLoudness, pulseStepMax, pulseStepMin)) / 100.0;
-//  Serial.println("pS: ");
-//  Serial.println(pulseStep);
-//  Serial.println("    ");
   
   // how distant will the next selected pixel be from the previous
   int noiseSpeed = (int) abs(round(map(micSmoothed, enviromentSilence, enviromentLoudness, noiseSpeedMin, noiseSpeedMax)));
@@ -157,25 +144,7 @@ void loop()
   }
 
   /* ––––––––––––––––  LED PIXELS FADE IN/OUT PULSE (or cycle) ––––––––––––––––  */
-//      Serial.println("pulseDuration:");
-//      Serial.println(pulseDuration);
-//      Serial.println(" ");
-//
-//
-//  int pulseDurationPerLoop = (int) round(pulseDuration / loopsPerSecond);
-//      Serial.println("pDperLoop:");
-//      Serial.println(pulseDurationPerLoop);
-//      Serial.println(" ");
-//
-//  float pulseStep = PI_ / pulseDuration;
-//
-//      Serial.println("pulseStep:");
-//      Serial.println(pulseStep);
-//      Serial.println(" ");
 
-  // fade in the selected pixel
-//  unsigned long pulse_currentMillis = millis();
-//  if (pulse_currentMillis - pulse_previousMillis >= pulseDurationPerLoop) {
     for(int i = 0; i < NUM_LEDS; i++) {
         if(areLedsToggled[i] && ledsBrightness_inRadians[i] < PI_) {
           // brighten a led pixel to maximum brightness, then back to black
@@ -185,14 +154,12 @@ void loop()
           ledsBrightness_inRadians[i] += pulseStep;
         } else {
           // when pixel cycle is finished, reset the pixel and turn it off
-//          leds[i].fadeLightBy(128);
+          leds[i].fadeLightBy(128);
           leds[i] = CRGB(15, 15, 15);
           areLedsToggled[i] = false;
           ledsBrightness_inRadians[i] = 0.0;
         }
     }
-//    pulse_previousMillis = pulse_currentMillis;
-//  }
 
   FastLED.show();
   delay(2);
