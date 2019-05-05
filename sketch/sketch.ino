@@ -28,13 +28,9 @@ change these to the affect behavior of the program
 const int periodDurationMin = 100;
 const int periodDurationMax = 1000;
 
-// how fast will a single led finish fadein/out pulse
-// bigger the max number, the longer the pulse will last
-const int pulseDurationMin = 25;
-const int pulseDurationMax = 100;
-
-const float pulseStepMin = 3.0;
-const float pulseStepMax = 0.05;
+const float pulseStepMin = 3.0;  // the loudeer the sound the shorter the pulse 
+const float pulseStepMax = 0.05; // the more silent the sound the longer the pulse 
+                                 /* !!!! the smaller the number the longer the pulse !!!! */
 
 
 // how distant will a selected led pixel be from the previous one
