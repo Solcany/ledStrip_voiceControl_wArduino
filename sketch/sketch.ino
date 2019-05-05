@@ -164,22 +164,3 @@ void loop()
   FastLED.show();
   delay(2);
 }
-
-static inline int measure_loopsPerSecond(const int seconds){
-  // Create static variables so that the code and variables can
-  // all be declared inside a function
-  static unsigned long previousMillis;
-  static unsigned long frameCount;
-  static unsigned int loopsPerSecond;
-  
-  
-  // It is best if we declare millis() only once
-  unsigned long currentMillis = millis();
-  frameCount ++;
-  if (currentMillis - previousMillis >= seconds * 1000) {
-    loopsPerSecond = frameCount / seconds;
-    frameCount = 0;
-    previousMillis = currentMillis; 
-    return loopsPerSecond;
-  }
-}
